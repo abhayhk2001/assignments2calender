@@ -206,6 +206,7 @@
       dueISO: parsed.dueISO,
       dueLocalLabel: parsed.localLabel,
       tzAbbr: parsed.tzAbbr,
+      tzMode: "utc", // dueISO is already in absolute UTC; do NOT re-zone via VTIMEZONE.
       url,
     };
   }

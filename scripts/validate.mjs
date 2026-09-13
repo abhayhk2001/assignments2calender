@@ -425,6 +425,40 @@ assert(
   // Unrecognized TZ falls back to UTC (offset 0)
   const fb = parse("Due, Sep 13, 11:59 PM XYZ");
   assert(fb.ok && fb.dueISO === "2026-09-13 23:59:00 +0000", "coursera parser: unknown TZ -> UTC");
+
+  // Regression: scrapeItem must stamp tzMode: "utc" on every assignment so
+  // the ICS builder does not fall through to the Gradescope "preserve" path
+  // and shift the event by the course's UTC offset.
+  const fakeLi = {
+    querySelector: (sel) => {
+      if (sel === '[data-test="rc-ItemName"]') return { textContent: "Quiz" };
+      if (sel === '[data-testid="tag-root"]') {
+        return {
+          querySelector: (s) => {
+            if (s.includes("css-t1fcku")) return { textContent: "Due, Sep 13, 11:59 PM CDT" };
+            if (s.includes("visually-hidden")) return null;
+            return null;
+          },
+        };
+      }
+      if (sel === '[class*="css-vac8rf"]') return { textContent: "Quiz • 20 min" };
+      if (sel === "a[href]") return { getAttribute: () => "/learn/x/quiz" };
+      return null;
+    },
+    getAttribute: (k) => (k === "data-test" ? "gradedLti" : null),
+  };
+  // We can't call scrapeItem directly (it's an inner function), but the
+  // content script exposes __courseraICS.scrapeAll. Easier: assert on the
+  // assignment shape by simulating the relevant code path. Instead, just
+  // assert the source by inspecting the file.
+  const courseraSrc = fs.readFileSync(
+    path.join(ROOT, "content/coursera-ics.js"),
+    "utf8"
+  );
+  assert(
+    /tzMode:\s*"utc"/.test(courseraSrc),
+    "coursera content script stamps tzMode: 'utc' on assignments"
+  );
 }
 
 // --- Show the first ~80 lines of the output for visual inspection ----

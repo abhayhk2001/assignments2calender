@@ -60,10 +60,18 @@
       bucket = {
         courseId: course.courseId || null,
         courseName: course.courseName || "Course",
+        source: course.source || "Gradescope",
         addedAt: new Date().toISOString(),
         assignments: [],
       };
       memory.push(bucket);
+    }
+
+    // If the new scrape reveals the course is from a different source than
+    // what we have on file, update it so subsequent assignments inherit the
+    // correct tzMode.
+    if (course.source && bucket.source !== course.source) {
+      bucket.source = course.source;
     }
 
     let added = 0;
@@ -71,9 +79,14 @@
       const k = assignmentKey(a);
       if (existingKeys.has(k)) continue;
       existingKeys.add(k);
+      // Backfill tzMode from the bucket's source if the content script
+      // didn't provide one.
+      const tzMode = a.tzMode || (bucket.source === "Coursera" ? "utc" : "preserve");
       // Annotate assignment with course info so ICS builder can use it.
       bucket.assignments.push({
         ...a,
+        source: bucket.source,
+        tzMode,
         courseName: bucket.courseName,
         courseId: bucket.courseId,
       });
@@ -271,7 +284,20 @@
     const out = [];
     for (const c of memory) {
       for (const a of c.assignments || []) {
-        out.push({ ...a, courseName: c.courseName, courseId: c.courseId });
+        // Defensive backfill: if a stale or hand-merged memory entry is
+        // missing tzMode, infer it from the course's source. Without this,
+        // a Coursera assignment would default to the Gradescope "preserve"
+        // path and be misinterpreted as America/Chicago wall-clock time,
+        // shifting the event by the course's UTC offset.
+        const source = a.source || c.source || "Gradescope";
+        const tzMode = a.tzMode || (source === "Coursera" ? "utc" : "preserve");
+        out.push({
+          ...a,
+          source,
+          tzMode,
+          courseName: c.courseName,
+          courseId: c.courseId,
+        });
       }
     }
     return out;

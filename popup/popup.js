@@ -84,21 +84,33 @@
 
   // ---- scraping the active tab ------------------------------------------
 
-  function isGradescopeCourseUrl(url) {
+  function isSupportedCourseUrl(url) {
     try {
       const u = new URL(url);
-      return u.hostname === "www.gradescope.com" && /^\/courses\/\d+/.test(u.pathname);
+      if (u.hostname === "www.gradescope.com" && /^\/courses\/\d+/.test(u.pathname)) {
+        return { ok: true, source: "Gradescope" };
+      }
+      if (u.hostname === "www.coursera.org" && /^\/learn\/[^/]+/.test(u.pathname)) {
+        return { ok: true, source: "Coursera" };
+      }
+      return { ok: false };
     } catch {
-      return false;
+      return { ok: false };
     }
   }
 
   async function scrapeActiveTab() {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (!tab || !isGradescopeCourseUrl(tab.url || "")) return null;
+    if (!tab) return null;
+    const support = isSupportedCourseUrl(tab.url || "");
+    if (!support.ok) return null;
     try {
       const resp = await browser.tabs.sendMessage(tab.id, { type: "scrape" });
-      if (resp && resp.ok) return resp.data;
+      if (resp && resp.ok) {
+        // Backfill source if the content script didn't set it.
+        if (!resp.data.source) resp.data.source = support.source;
+        return resp.data;
+      }
     } catch (_) {
       // Content script not loaded; user may need to reload the tab.
     }
@@ -111,7 +123,7 @@
     const body = els.currentBody;
     if (!state.current) {
       body.innerHTML =
-        '<p class="muted small">Open a Gradescope course page, then reopen the popup.</p>';
+        '<p class="muted small">Open a Gradescope or Coursera course page, then reopen the popup.</p>';
       return;
     }
     const { courseName, courseId, assignments } = state.current;

@@ -24,8 +24,8 @@ RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
 END:DAYLIGHT
 END:VTIMEZONE
 BEGIN:VEVENT
-UID:1vrn1kb-gradescope-ics@local
-DTSTAMP:20260913T034152Z
+UID:1vrn1kb-ics@local
+DTSTAMP:20260913T052834Z
 DTSTART;TZID=America/Chicago:20260927T215900
 DTEND;TZID=America/Chicago:20260927T235900
 SUMMARY:CS 224N - Natural Language Processing — Week 03 Quiz: Classificatio
@@ -48,8 +48,8 @@ DESCRIPTION:Week 03 Quiz: Classification due in 2 hours
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:14uaga2-gradescope-ics@local
-DTSTAMP:20260913T034152Z
+UID:14uaga2-ics@local
+DTSTAMP:20260913T052834Z
 DTSTART;TZID=America/Chicago:20260927T215900
 DTEND;TZID=America/Chicago:20260927T235900
 SUMMARY:CS 224N - Natural Language Processing — Homework 1
@@ -71,8 +71,8 @@ DESCRIPTION:Homework 1 due in 2 hours
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:sp07un-gradescope-ics@local
-DTSTAMP:20260913T034152Z
+UID:sp07un-ics@local
+DTSTAMP:20260913T052834Z
 DTSTART;TZID=America/Chicago:20260920T215900
 DTEND;TZID=America/Chicago:20260920T235900
 SUMMARY:CS 224N - Natural Language Processing — Week 02 Quiz: Structure and
@@ -96,8 +96,8 @@ DESCRIPTION:Week 02 Quiz: Structure and Distribution of Words due in 2 hour
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:kqrspm-gradescope-ics@local
-DTSTAMP:20260913T034152Z
+UID:kqrspm-ics@local
+DTSTAMP:20260913T052834Z
 DTSTART;TZID=America/Chicago:20260913T215900
 DTEND;TZID=America/Chicago:20260913T235900
 SUMMARY:CS 224N - Natural Language Processing — Week 01 Quiz: Introduction

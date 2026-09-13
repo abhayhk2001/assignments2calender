@@ -25,10 +25,11 @@ if (!buildICS) {
 // New flat-array API. Each assignment carries its own courseName so the
 // builder can support multi-course memories in a single .ics file.
 
-function makeAssignments(courseName, courseId, items) {
+function makeAssignments(courseName, courseId, items, source) {
   return items.map((it) => ({
     courseName,
     courseId,
+    source: source || "Gradescope",
     name: it.name,
     dueISO: it.dueISO,
     releasedText: it.releasedText,
@@ -84,6 +85,60 @@ const cs161 = makeAssignments("CS 161 - Computer Security", "987654", [
     url: "https://www.gradescope.com/courses/987654/assignments/222/submissions/new",
   },
 ]);
+
+// Coursera fixture: every assignment uses tzMode "utc" with a UTC dueISO
+// that already reflects the original wall-clock + offset. week + type +
+// dueLocalLabel are surfaced in SUMMARY and DESCRIPTION.
+function makeCourseraAssignments(courseName, courseId, items) {
+  return items.map((it) => ({
+    courseName,
+    courseId,
+    source: "Coursera",
+    tzMode: "utc",
+    name: it.name,
+    week: it.week,
+    type: it.type,
+    meta: it.meta,
+    dueISO: it.dueISO,           // UTC, format "YYYY-MM-DD HH:MM:SS +0000"
+    dueLocalLabel: it.dueLocalLabel,
+    url: it.url,
+  }));
+}
+
+// "Due, Sep 13, 11:59 PM CDT"  →  CDT is UTC-5  →  2026-09-14 04:59:00 +0000
+const cs447 = makeCourseraAssignments(
+  "CS 447 - Natural Language Processing",
+  "cs-447-natural-language-processing",
+  [
+    {
+      name: "Peer Reviewed Question 1",
+      week: "Week 1",
+      type: "phasedPeer",
+      meta: "Peer-graded Assignment • 1h • Grade: -- •",
+      dueISO: "2026-09-14 04:59:00 +0000",
+      dueLocalLabel: "Sep 13, 11:59 PM CDT",
+      url: "https://www.coursera.org/learn/cs-447-natural-language-processing/peer/oXALr/peer-reviewed-question-1",
+    },
+    {
+      name: "Peer Reviewed Question 1 (review)",
+      week: "Week 1",
+      type: "splitPeerReviewItem",
+      meta: "Review Your Peers • Grade: -- •",
+      dueISO: "2026-09-17 04:59:00 +0000",
+      dueLocalLabel: "Sep 16, 11:59 PM CDT",
+      url: "https://www.coursera.org/learn/cs-447-natural-language-processing/peer/oXALr/peer-reviewed-question-1/give-feedback",
+    },
+    {
+      name: "Week 1 Quiz",
+      week: "Week 1",
+      type: "gradedLti",
+      meta: "Graded App Item • 20 min • Grade: -- •",
+      dueISO: "2026-09-14 04:59:00 +0000",
+      dueLocalLabel: "Sep 13, 11:59 PM CDT",
+      url: "https://www.coursera.org/learn/cs-447-natural-language-processing/gradedLti/PNw7P/week-1-quiz",
+    },
+  ]
+);
 
 let ics;
 try {
@@ -206,7 +261,7 @@ assert(
   "merged: CATEGORIES uses each course's name"
 );
 assert(
-  unfoldedMerged.includes("X-WR-CALNAME:Gradescope (2 courses)"),
+  unfoldedMerged.includes("X-WR-CALNAME:Gradescope (2)"),
   "merged: cal name reflects 2 courses"
 );
 assert(
@@ -235,6 +290,142 @@ assert(
   legacyUnfolded.includes("CATEGORIES:Gradescope,CS 161 - Computer Security"),
   "legacy form: per-assignment courseName wins over wrapper courseName"
 );
+
+// --- Coursera fixture -------------------------------------------------
+const courseraIcs = buildICS(cs447);
+const courseraEvents = courseraIcs.match(/BEGIN:VEVENT\r\n/g) || [];
+assert(courseraEvents.length === 3, `Coursera: 3 VEVENTs (got ${courseraEvents.length})`);
+
+const courseraUnfolded = unfold(courseraIcs);
+
+// UTC mode: no TZID, no VTIMEZONE block.
+assert(
+  !courseraIcs.includes("DTSTART;TZID="),
+  "Coursera: DTSTART does NOT use TZID"
+);
+assert(
+  !courseraIcs.includes("BEGIN:VTIMEZONE\r\n"),
+  "Coursera: no VTIMEZONE block when all events are UTC"
+);
+assert(
+  courseraIcs.includes("DTSTART:20260914T025900Z"),
+  "Coursera: DTSTART is 2h before due UTC (Sep 14 02:59Z)"
+);
+assert(
+  courseraIcs.includes("DTEND:20260914T045900Z"),
+  "Coursera: DTEND is at the deadline UTC (Sep 14 04:59Z)"
+);
+
+// Week + name in SUMMARY
+assert(
+  courseraUnfolded.includes(
+    "SUMMARY:CS 447 - Natural Language Processing — Week 1 — Peer Reviewed Question 1"
+  ),
+  "Coursera: SUMMARY includes week + course + name"
+);
+
+// Description has all the extra context
+// (commas inside values are escaped per RFC 5545 §3.3.11)
+assert(
+  courseraUnfolded.includes("Original deadline: Sep 13\\, 11:59 PM CDT"),
+  "Coursera: description keeps original local label"
+);
+assert(courseraUnfolded.includes("Week: Week 1"), "Coursera: description has week");
+assert(courseraUnfolded.includes("Type: phasedPeer"), "Coursera: description has type");
+assert(courseraUnfolded.includes("Meta: Peer-graded"), "Coursera: description has meta");
+
+// CATEGORIES uses source
+assert(
+  courseraUnfolded.includes("CATEGORIES:Coursera,CS 447 - Natural Language Processing"),
+  "Coursera: CATEGORIES uses Coursera as source"
+);
+
+// Single-Coursera cal name
+assert(
+  courseraUnfolded.includes("X-WR-CALNAME:CS 447 - Natural Language Processing"),
+  "Coursera: single-course cal name"
+);
+
+// Cross-source merge: Gradescope + Coursera in one .ics
+const cross = buildICS([...cs224n, ...cs447]);
+const crossUnfolded = unfold(cross);
+const crossEvents = cross.match(/BEGIN:VEVENT\r\n/g) || [];
+assert(crossEvents.length === 7, `cross-source: 7 VEVENTs (got ${crossEvents.length})`);
+// VTIMEZONE block reappears because Gradescope events still need it
+assert(
+  cross.includes("BEGIN:VTIMEZONE\r\n"),
+  "cross-source: VTIMEZONE block reappears when any event needs it"
+);
+// Cal name falls back to the source-set
+assert(
+  crossUnfolded.includes("X-WR-CALNAME:Courses (2)"),
+  "cross-source: cal name uses generic 'Courses' tag"
+);
+assert(
+  crossUnfolded.includes("CATEGORIES:Coursera,CS 447 - Natural Language Processing"),
+  "cross-source: Coursera categories preserved"
+);
+assert(
+  crossUnfolded.includes("CATEGORIES:Gradescope,CS 224N - Natural Language Processing"),
+  "cross-source: Gradescope categories preserved"
+);
+
+// --- Sanity: lib/ics.js human-date parser via the script's own formatICSLocal.
+// We can't import the coursera content script's helpers into Node directly,
+// but formatICSLocal output should be parseable by the existing parser:
+// "2026-09-14 04:59:00 +0000" -> local 20260914T045900, offset 0.
+const utcParsed = _parseCourseDateTime("2026-09-14 04:59:00 +0000");
+assert(
+  utcParsed && utcParsed.local === "20260914T045900",
+  "parseCourseDateTime handles UTC string (local field)"
+);
+assert(
+  utcParsed && utcParsed.offsetMinutes === 0,
+  "parseCourseDateTime handles UTC string (offset)"
+);
+
+// --- Unit test the Coursera human-date parser ------------------------
+// The content script is an IIFE that runs against `window`. We eval it
+// here with a minimal shim, then grab parseHumanDueDate off window.
+{
+  const src = fs.readFileSync(
+    path.join(ROOT, "content/coursera-ics.js"),
+    "utf8"
+  );
+  const fakeWin = { browser: undefined };
+  const run = new Function("window", src);
+  run(fakeWin);
+
+  const parse = fakeWin.__courseraICS && fakeWin.__courseraICS.parseHumanDueDate;
+  assert(typeof parse === "function", "coursera parser exposed via window.__courseraICS");
+
+  function check(input, expectedISO) {
+    const r = parse(input);
+    assert(
+      r.ok && r.dueISO === expectedISO,
+      `coursera parser: ${JSON.stringify(input)} -> ${expectedISO} (got ${r.ok ? r.dueISO : "FAIL"})`
+    );
+  }
+
+  // 11:59 PM CDT (UTC-5) -> 04:59Z next day (test runs in Sep 2026, so Sep 13 is upcoming)
+  check("Due, Sep 13, 11:59 PM CDT", "2026-09-14 04:59:00 +0000");
+  // 09:00 AM EST (UTC-5) -> 14:00Z
+  check("Due, Oct 04, 9:00 AM EST", "2026-10-04 14:00:00 +0000");
+  // 11:59 PM PDT (UTC-7) -> 06:59Z next day
+  check("Due, Nov 15, 11:59 PM PDT", "2026-11-16 06:59:00 +0000");
+  // 12:00 AM UTC -> same day 00:00Z
+  check("Due, Dec 01, 12:00 AM UTC", "2026-12-01 00:00:00 +0000");
+  // 12:00 PM BST (UTC+1) -> 11:00Z
+  check("Due, Sep 20, 12:00 PM BST", "2026-09-20 11:00:00 +0000");
+  // IST (UTC+5:30) -> 11:59 - 5:30 = 06:29Z. Aug 30 is past -> rolls to next year.
+  check("Due, Aug 30, 11:59 AM IST", "2027-08-30 06:29:00 +0000");
+  // Malformed input
+  assert(!parse("Due, sometime tomorrow").ok, "coursera parser: rejects malformed");
+  assert(!parse("No due date").ok, "coursera parser: rejects missing prefix");
+  // Unrecognized TZ falls back to UTC (offset 0)
+  const fb = parse("Due, Sep 13, 11:59 PM XYZ");
+  assert(fb.ok && fb.dueISO === "2026-09-13 23:59:00 +0000", "coursera parser: unknown TZ -> UTC");
+}
 
 // --- Show the first ~80 lines of the output for visual inspection ----
 console.log("\n--- ICS output (first 80 lines) ---\n");

@@ -1,19 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Gradescope to ICS",
-  "version": "1.1.0",
-  "description": "Click the toolbar icon on a Gradescope course page to gather assignments into a memory, then download them all as a single .ics calendar file.",
+  "name": "Course Deadlines to ICS",
+  "version": "1.2.0",
+  "description": "Adds assignments and graded items from Gradescope and Coursera to a memory, then downloads them all as a single .ics calendar file.",
 
   "permissions": [
     "storage"
   ],
 
   "host_permissions": [
-    "https://www.gradescope.com/*"
+    "https://www.gradescope.com/*",
+    "https://www.coursera.org/*"
   ],
 
   "action": {
-    "default_title": "Gradescope to ICS",
+    "default_title": "Course Deadlines to ICS",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "48": "icons/icon-48.png",
@@ -25,6 +26,11 @@
     {
       "matches": ["https://www.gradescope.com/courses/*"],
       "js": ["content/gradescope-ics.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.coursera.org/learn/*"],
+      "js": ["content/coursera-ics.js"],
       "run_at": "document_idle"
     }
   ],

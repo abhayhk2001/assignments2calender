@@ -1,23 +1,25 @@
 # Gradescope to ICS (Firefox/Zen WebExtension)
 
-A Manifest V3 WebExtension that injects a **"Download .ics"** button directly
-into Gradescope course pages. Click it to download an `.ics` calendar file
-with one event per assignment deadline.
+A Manifest V3 WebExtension with a toolbar popup. Open it on a Gradescope
+course page, **add the course's assignments to memory**, navigate to
+other courses and add them too, then **download one `.ics` calendar
+file** containing every event.
 
 ## Features
 
-- Adds a toolbar **above the assignments table** on
-  `https://www.gradescope.com/courses/*` — no popup, no background script.
-- One event per row in `#assignments-student-table`, with a 1-hour duration
-  anchored at the due time.
-- Preserves the course's timezone (`America/Chicago`, shown as CDT/CST on
-  Gradescope) using a proper `VTIMEZONE` block — events display at the
-  correct wall-clock time in any calendar app, regardless of your local
-  zone.
-- Each event includes a **URL** to the assignment, the **course name**
-  and **status** in the description, and **two reminders**: 1 day
-  before, and 2 hours before.
-- Filename derived from the course name, e.g. `CS-224N.ics`.
+- Toolbar popup UI. No page injection, no background script.
+- Each event runs from **2 hours before** the deadline to the deadline
+  itself, so the calendar block visually leads up to the due time.
+- The event name is prefixed with the course, e.g.
+  `CS 224N - Natural Language Processing — Homework 1`.
+- Preserves the course timezone (`America/Chicago`, shown as CDT/CST on
+  Gradescope) using a `VTIMEZONE` block.
+- Each event has a **URL** to the assignment, course + status in the
+  description, and **two reminders**: 1 day before, and 2 hours before.
+- **Memory** is stored in `browser.storage.local` and survives browser
+  restarts. Adding the same course twice dedupes by
+  `(name, dueISO)`; new assignments are merged in.
+- One `.ics` file can contain events from any number of courses.
 
 ## Install (temporary, for development)
 
@@ -26,56 +28,52 @@ with one event per assignment deadline.
 3. Pick `manifest.json` from this folder.
 4. Open a Gradescope course page, e.g.
    `https://www.gradescope.com/courses/123456`.
-5. A blue **Download .ics** button appears above the assignments table.
-   Click it → a "Save As" dialog downloads the calendar file.
-
-Temporary add-ons are removed when the browser restarts. To install
-permanently, sign and submit the extension to
-[addons.mozilla.org](https://addons.mozilla.org/) or use a self-hosted
-XPI.
+5. Click the toolbar icon → **+ Add to memory**. Repeat on other courses.
+6. Click **Download .ics** to save a single file with everything.
 
 ## File map
 
 | File | Purpose |
 | --- | --- |
 | `manifest.json` | MV3 manifest. |
-| `content/gradescope-ics.js` | Injected into course pages. Adds the toolbar, scrapes the table, builds & downloads the ICS. |
-| `lib/ics.js` | Zero-dependency RFC 5545 builder (VTIMEZONE, VEVENT, VALARM, escaping, line folding). |
+| `popup/popup.html` / `.css` / `.js` | Toolbar popup UI. Reads memory, talks to content script, builds & downloads ICS. |
+| `content/gradescope-ics.js` | Injected into course pages. Responds to `"scrape"` messages from the popup. |
+| `lib/ics.js` | Zero-dependency RFC 5545 builder (VTIMEZONE, VEVENT, VALARM, escaping, line folding). Accepts a flat array of assignments (each carrying its own `courseName`). |
 | `icons/` | 48/96/128 px toolbar + extension icons. |
 | `scripts/make_icons.py` | Regenerates the icons. |
-| `scripts/validate.mjs` | Runs `lib/ics.js` against a sample payload and asserts on the output. |
+| `scripts/validate.mjs` | Runs `lib/ics.js` against single- and multi-course fixtures. |
 
 ## How it works
 
 ```
-[Gradescope course page]
+[Toolbar popup]  ◀──  user click
    │
-   ▼
-content/gradescope-ics.js  (runs at document_idle)
-   ├─ injects toolbar above #assignments-student-table
-   └─ on click:
-        ├─ scrapeAll()               ← reads DOM rows
-        ├─ GradescopeICS.buildICS()  ← lib/ics.js
-         └─ <a download> + blob URL   ← triggers native save (no background script)
+   ├─ browser.tabs.sendMessage(activeTabId, { type: "scrape" })
+   │      └─▶  content/gradescope-ics.js
+   │              └─ reads #assignments-student-table → returns { courseName, courseId, assignments }
+   │
+   ├─ "+ Add to memory"  →  mergeCourse()  →  browser.storage.local.set({ memory_v1 })
+   │                                       (dedup by name+dueISO)
+   │
+   └─ "Download .ics"  →  buildICS(flatAssignments)  →  <a download> + blob URL
 ```
 
-No background script. No popup. The content script does everything.
+No background script. The popup talks directly to the content script
+and to `browser.storage.local`; the download uses a same-origin blob
+URL.
 
 ## Permissions
 
 | Permission | Why |
 | --- | --- |
+| `storage` | Persist the memory across popup closes and browser restarts. |
 | `host_permissions: https://www.gradescope.com/*` | Inject the content script on course pages. |
 
-No `downloads` permission is needed: the content script saves the file
-via a same-origin blob URL + hidden `<a download>` element, which is a
-standard web platform feature and works in any context (no background
-script involved).
+No `downloads` permission is needed: the popup saves the file via a
+same-origin blob URL + hidden `<a download>` element.
 
 ## Notes / known limits
 
-- Only the **currently visible** course is read. The dashboard page
-  (multi-course) is not aggregated.
 - The `datetime` attribute on each `<time class="submissionTimeChart--dueDate">`
   is the source of truth. If Gradescope changes their markup, selectors
   in `content/gradescope-ics.js` will need updating.
@@ -83,5 +81,6 @@ script involved).
 - Reminders are honored by calendar clients that support `VALARM`
   (Google Calendar, Apple Calendar, Thunderbird, Outlook). Some web
   calendar UIs ignore them.
-- The injection uses a `MutationObserver` so SPA navigation between
-  course pages is handled — but reloading the page is the surest path.
+- The calendar name (`X-WR-CALNAME`) is the course name for a
+  single-course export, or `Gradescope (N courses)` when multiple
+  courses are merged.

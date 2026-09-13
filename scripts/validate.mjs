@@ -22,44 +22,72 @@ if (!buildICS) {
 }
 
 // --- Fixture: the exact assignments from the user's HTML --------------
-const sample = {
-  courseName: "CS 224N - Natural Language Processing",
-  courseId: "1344633",
-  assignments: [
-    {
-      name: "Week 03 Quiz: Classification",
-      dueISO: "2026-09-27 23:59:00 -0500",
-      releasedText: "Sep 07 at 12:00AM",
-      status: "No Submission",
-      url: "https://www.gradescope.com/courses/1344633/assignments/8353320/submissions/new",
-    },
-    {
-      name: "Homework 1",
-      dueISO: "2026-09-27 23:59:00 -0500",
-      releasedText: "Aug 31 at 12:00AM",
-      status: "No Submission",
-      url: "https://www.gradescope.com/courses/1344633/assignments/8353317/submissions",
-    },
-    {
-      name: "Week 02 Quiz: Structure and Distribution of Words",
-      dueISO: "2026-09-20 23:59:00 -0500",
-      releasedText: "Aug 31 at 12:00AM",
-      status: "No Submission",
-      url: "https://www.gradescope.com/courses/1344633/assignments/8353319/submissions/new",
-    },
-    {
-      name: "Week 01 Quiz: Introduction",
-      dueISO: "2026-09-13 23:59:00 -0500",
-      releasedText: "Aug 24 at 12:00AM",
-      status: "No Submission",
-      url: "https://www.gradescope.com/courses/1344633/assignments/8353314/submissions/new",
-    },
-  ],
-};
+// New flat-array API. Each assignment carries its own courseName so the
+// builder can support multi-course memories in a single .ics file.
+
+function makeAssignments(courseName, courseId, items) {
+  return items.map((it) => ({
+    courseName,
+    courseId,
+    name: it.name,
+    dueISO: it.dueISO,
+    releasedText: it.releasedText,
+    status: it.status,
+    url: it.url,
+  }));
+}
+
+const cs224n = makeAssignments("CS 224N - Natural Language Processing", "1344633", [
+  {
+    name: "Week 03 Quiz: Classification",
+    dueISO: "2026-09-27 23:59:00 -0500",
+    releasedText: "Sep 07 at 12:00AM",
+    status: "No Submission",
+    url: "https://www.gradescope.com/courses/1344633/assignments/8353320/submissions/new",
+  },
+  {
+    name: "Homework 1",
+    dueISO: "2026-09-27 23:59:00 -0500",
+    releasedText: "Aug 31 at 12:00AM",
+    status: "No Submission",
+    url: "https://www.gradescope.com/courses/1344633/assignments/8353317/submissions",
+  },
+  {
+    name: "Week 02 Quiz: Structure and Distribution of Words",
+    dueISO: "2026-09-20 23:59:00 -0500",
+    releasedText: "Aug 31 at 12:00AM",
+    status: "No Submission",
+    url: "https://www.gradescope.com/courses/1344633/assignments/8353319/submissions/new",
+  },
+  {
+    name: "Week 01 Quiz: Introduction",
+    dueISO: "2026-09-13 23:59:00 -0500",
+    releasedText: "Aug 24 at 12:00AM",
+    status: "No Submission",
+    url: "https://www.gradescope.com/courses/1344633/assignments/8353314/submissions/new",
+  },
+]);
+
+const cs161 = makeAssignments("CS 161 - Computer Security", "987654", [
+  {
+    name: "Project 1: Memory Safety",
+    dueISO: "2026-10-04 23:59:00 -0500",
+    releasedText: "Sep 22 at 12:00AM",
+    status: "No Submission",
+    url: "https://www.gradescope.com/courses/987654/assignments/111/submissions",
+  },
+  {
+    name: "Discussion 3",
+    dueISO: "2026-09-22 23:59:00 -0500",
+    releasedText: "Sep 15 at 12:00AM",
+    status: "Submitted",
+    url: "https://www.gradescope.com/courses/987654/assignments/222/submissions/new",
+  },
+]);
 
 let ics;
 try {
-  ics = buildICS(sample);
+  ics = buildICS(cs224n);
 } catch (e) {
   console.error("FAIL: buildICS threw:", e);
   process.exit(1);
@@ -158,6 +186,55 @@ assert(
 const p = _parseCourseDateTime("2026-09-27 23:59:00 -0500");
 assert(p && p.local === "20260927T235900", "parseCourseDateTime local string");
 assert(p && p.offsetMinutes === -300, "parseCourseDateTime offset");
+
+// --- Multi-course memory ---------------------------------------------
+const merged = buildICS([...cs224n, ...cs161]);
+const mergedEvents = merged.match(/BEGIN:VEVENT\r\n/g) || [];
+assert(mergedEvents.length === 6, `merged ICS has 6 VEVENTs (got ${mergedEvents.length})`);
+
+const unfoldedMerged = unfold(merged);
+assert(
+  unfoldedMerged.includes("SUMMARY:CS 224N - Natural Language Processing — Homework 1"),
+  "merged: CS 224N assignment in SUMMARY"
+);
+assert(
+  unfoldedMerged.includes("SUMMARY:CS 161 - Computer Security — Project 1: Memory Safety"),
+  "merged: CS 161 assignment in SUMMARY"
+);
+assert(
+  unfoldedMerged.includes("CATEGORIES:Gradescope,CS 161 - Computer Security"),
+  "merged: CATEGORIES uses each course's name"
+);
+assert(
+  unfoldedMerged.includes("X-WR-CALNAME:Gradescope (2 courses)"),
+  "merged: cal name reflects 2 courses"
+);
+assert(
+  !unfoldedMerged.includes("X-WR-CALNAME:CS 224N"),
+  "merged: cal name is NOT the single-course form"
+);
+
+// Single-course memory should still use the course name as cal name.
+assert(
+  unfolded.includes("X-WR-CALNAME:CS 224N - Natural Language Processing"),
+  "single course: cal name is the course"
+);
+
+// Legacy form still works.
+const legacy = buildICS({
+  courseName: "Legacy Course",
+  courseId: "42",
+  assignments: cs161,
+});
+const legacyUnfolded = unfold(legacy);
+assert(
+  legacyUnfolded.includes("X-WR-CALNAME:Legacy Course"),
+  "legacy form: uses provided courseName"
+);
+assert(
+  legacyUnfolded.includes("CATEGORIES:Gradescope,CS 161 - Computer Security"),
+  "legacy form: per-assignment courseName wins over wrapper courseName"
+);
 
 // --- Show the first ~80 lines of the output for visual inspection ----
 console.log("\n--- ICS output (first 80 lines) ---\n");

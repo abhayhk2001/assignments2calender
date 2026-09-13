@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gradescope to ICS</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="card">
+      <header class="hdr">
+        <h1>Gradescope <span class="arrow">&rarr;</span> ICS</h1>
+        <span id="memory-badge" class="badge" hidden></span>
+      </header>
+
+      <section id="current" class="panel" aria-labelledby="current-h">
+        <div class="panel-h">
+          <span id="current-h" class="panel-title">This page</span>
+        </div>
+        <div id="current-body" class="panel-body">
+          <p class="muted">Reading&hellip;</p>
+        </div>
+      </section>
+
+      <section id="memory" class="panel" aria-labelledby="memory-h">
+        <div class="panel-h">
+          <span id="memory-h" class="panel-title">Memory</span>
+          <span id="memory-count" class="panel-sub">0 assignments</span>
+        </div>
+        <ul id="course-list" class="course-list"></ul>
+        <p id="memory-empty" class="muted small" hidden>
+          Nothing saved yet. Add a course from above, or open a Gradescope course page.
+        </p>
+      </section>
+
+      <section class="actions">
+        <button id="download-btn" class="primary" disabled>Download .ics</button>
+        <button id="clear-btn" class="secondary" disabled>Clear memory</button>
+      </section>
+
+      <p id="error" class="error" hidden></p>
+    </main>
+    <script src="../lib/ics.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

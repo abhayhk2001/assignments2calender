@@ -1,0 +1,121 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Gradescope to ICS//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:CS 224N - Natural Language Processing (Gradescope)
+X-WR-TIMEZONE:America/Chicago
+BEGIN:VTIMEZONE
+TZID:America/Chicago
+X-LIC-LOCATION:America/Chicago
+BEGIN:STANDARD
+DTSTART:18831118T120000
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0600
+TZNAME:CST
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:19180331T020000
+TZOFFSETFROM:-0600
+TZOFFSETTO:-0500
+TZNAME:CDT
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:1vrn1kb-gradescope-ics@local
+DTSTAMP:20260913T031624Z
+DTSTART;TZID=America/Chicago:20260927T215900
+DTEND;TZID=America/Chicago:20260927T235900
+SUMMARY:CS 224N - Natural Language Processing — Week 03 Quiz: Classificatio
+ n
+DESCRIPTION:Course: CS 224N - Natural Language Processing\nStatus: No Submi
+ ssion\nReleased: Sep 07 at 12:00AM\nLink: https://www.gradescope.com/cours
+ es/1344633/assignments/8353320/submissions/new
+URL:https://www.gradescope.com/courses/1344633/assignments/8353320/submissi
+ ons/new
+CATEGORIES:Gradescope,CS 224N - Natural Language Processing
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-P1D
+DESCRIPTION:Week 03 Quiz: Classification due tomorrow
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-PT2H
+DESCRIPTION:Week 03 Quiz: Classification due in 2 hours
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:14uaga2-gradescope-ics@local
+DTSTAMP:20260913T031624Z
+DTSTART;TZID=America/Chicago:20260927T215900
+DTEND;TZID=America/Chicago:20260927T235900
+SUMMARY:CS 224N - Natural Language Processing — Homework 1
+DESCRIPTION:Course: CS 224N - Natural Language Processing\nStatus: No Submi
+ ssion\nReleased: Aug 31 at 12:00AM\nLink: https://www.gradescope.com/cours
+ es/1344633/assignments/8353317/submissions
+URL:https://www.gradescope.com/courses/1344633/assignments/8353317/submissi
+ ons
+CATEGORIES:Gradescope,CS 224N - Natural Language Processing
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-P1D
+DESCRIPTION:Homework 1 due tomorrow
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-PT2H
+DESCRIPTION:Homework 1 due in 2 hours
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:sp07un-gradescope-ics@local
+DTSTAMP:20260913T031624Z
+DTSTART;TZID=America/Chicago:20260920T215900
+DTEND;TZID=America/Chicago:20260920T235900
+SUMMARY:CS 224N - Natural Language Processing — Week 02 Quiz: Structure and
+  Distribution of Words
+DESCRIPTION:Course: CS 224N - Natural Language Processing\nStatus: No Submi
+ ssion\nReleased: Aug 31 at 12:00AM\nLink: https://www.gradescope.com/cours
+ es/1344633/assignments/8353319/submissions/new
+URL:https://www.gradescope.com/courses/1344633/assignments/8353319/submissi
+ ons/new
+CATEGORIES:Gradescope,CS 224N - Natural Language Processing
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-P1D
+DESCRIPTION:Week 02 Quiz: Structure and Distribution of Words due tomorrow
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-PT2H
+DESCRIPTION:Week 02 Quiz: Structure and Distribution of Words due in 2 hour
+ s
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:kqrspm-gradescope-ics@local
+DTSTAMP:20260913T031624Z
+DTSTART;TZID=America/Chicago:20260913T215900
+DTEND;TZID=America/Chicago:20260913T235900
+SUMMARY:CS 224N - Natural Language Processing — Week 01 Quiz: Introduction
+DESCRIPTION:Course: CS 224N - Natural Language Processing\nStatus: No Submi
+ ssion\nReleased: Aug 24 at 12:00AM\nLink: https://www.gradescope.com/cours
+ es/1344633/assignments/8353314/submissions/new
+URL:https://www.gradescope.com/courses/1344633/assignments/8353314/submissi
+ ons/new
+CATEGORIES:Gradescope,CS 224N - Natural Language Processing
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-P1D
+DESCRIPTION:Week 01 Quiz: Introduction due tomorrow
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-PT2H
+DESCRIPTION:Week 01 Quiz: Introduction due in 2 hours
+END:VALARM
+END:VEVENT
+END:VCALENDAR

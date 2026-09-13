@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Gradescope to ICS",
+  "version": "1.0.0",
+  "description": "Adds a button to Gradescope assignment pages to download deadlines as a .ics calendar file.",
+
+  "permissions": [],
+
+  "host_permissions": [
+    "https://www.gradescope.com/*"
+  ],
+
+  "action": {
+    "default_title": "Gradescope to ICS",
+    "default_icon": {
+      "48": "icons/icon-48.png",
+      "96": "icons/icon-96.png"
+    }
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.gradescope.com/courses/*"],
+      "js": ["lib/ics.js", "content/gradescope-ics.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  }
+}
